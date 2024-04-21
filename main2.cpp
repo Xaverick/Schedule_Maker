@@ -1,7 +1,25 @@
 #include <iostream>
 #include <vector>
+#include<conio.h>
+#include <windows.h>
 #include <algorithm>
 using namespace std;
+
+void await(){
+    for (int i = 0; i < 100000000;i++){
+
+    }
+}
+
+void loading(){
+    cout << endl;
+    cout << endl;
+    cout << "Building Schedule";
+    for(int i = 0; i <= 5; i++){
+        await();
+        cout << ".";
+    }
+}
 
 // Task structure
 class Task {
@@ -70,12 +88,14 @@ void takeTaskInput() {
         vector<int> dependencies = takeDependencyInput(i);
 
         tasks.push_back(Task(i, duration, profit, resourceReq, endTime, dependencies));
-
+        cout<<endl;
     }
 
 }
 
 void showInputedSchedule() {
+
+    cout<<endl<<"Your Inputed Schedule: "<<endl<<endl;
     
     cout << "| TASK ID: |" << "| DURATION |" << "| PROFIT  |" << "| RESOURCE REQUIREMENT |" 
                 << "| END TIME ||"<< " DEPENDENCIES " << endl;
@@ -94,6 +114,8 @@ void showInputedSchedule() {
 }
 
 void showOptimizedSchedule(vector<Task> tasks) {
+
+    cout << endl << "Optimized Schedule: " << endl << endl;
     
     cout << "| TASK ID: |" << "| DURATION |" << "| PROFIT  |" << "| RESOURCE REQUIREMENT |" 
                 << "| END TIME ||"<< endl;
@@ -180,54 +202,84 @@ int main() {
 
     int maxProfit = 0;
     int flag = true;
+    int hold = true;
     int option;
     while(flag){
+
+        system("cls");
+        cout << "\t\t-------------------------------------------- "<<endl;
+        cout << " \t\t|          OPTIMIZED SCHEDULER            | "<<endl;
+        cout << " \t\t--------------------------------------------"<<endl;
         
-        cout << "1. Add Task" << endl;
-        cout << "2. Show Scheduled Task" << endl;
-        cout << "3. Set Total Resources" << endl;
-        cout << "4. Build Optimized Schedule" << endl;
-        cout << "5. Show Optimized Schedule" << endl;
-        cout << "6. Exit";
-        cout<<endl;
+        cout << "\t\t1. Add Task" << endl;
+        cout << "\t\t2. Show Scheduled Task" << endl;
+        cout << "\t\t3. Set Total Resources" << endl;
+        cout << "\t\t4. Build Optimized Schedule" << endl;
+        cout << "\t\t5. Show Optimized Schedule" << endl;
+        cout << "\t\t6. Exit";
+        cout<<endl<<endl<<endl;
         cout<<"Enter your option: ";
         cin>>option;
         cout<<endl<<endl;
 
         if(option == 1){
+            system("cls");
             takeTaskInput();
+            cout<<endl;
         }
         else if(option == 2){
+            system("cls");
             showInputedSchedule();
+            cout<<endl;
+            cout<<"Press Enter to continue...";
+            getch();
             
         }
         else if(option == 3){
+            system("cls");
             int totalResources;
-            cout<<"Enter Total Resources: ";
+            cout<<"\t\tEnter Total Resources: ";
             cin>>totalResources;
             availableResources = totalResources;
 
         }
         else if(option == 4){
+            system("cls");
+            loading();
+            system("cls");
             pair<int, vector<vector<int>>> result = maximizeProfit();
             maxProfit = result.first;
-            cout << "Maximum Profit: " << maxProfit << endl;
-            cout << "Optimized Schedule Built Successfully!" << endl;
+            cout << "\tMaximum Profit: " << maxProfit << endl;
+            cout << "\tOptimized Schedule Built Successfully!" << endl;
+
+            cout<<"\tPress Enter to continue...";
+            getch();
         }
         else if(option == 5){
+            system("cls");
             if(maxProfit == 0) {
                 cout << "Optimized Schedule not available. Please build it first." << endl;
+                cout<<endl;
+                cout<<"Press Enter to continue...";
+                getch();
             } else {
                 pair<int, vector<vector<int>>> result = maximizeProfit();
                 vector<Task> optimizedSchedule = extractOptimizedSchedule(result.second, tasks, availableResources);
                 showOptimizedSchedule(optimizedSchedule);
+                cout<<endl;
+                cout<<"Press Enter to continue...";
+                getch();
+
             }
+
         }
         else if(option == 6){
             flag = false;
         }
         else{
             cout<<"Invalid Option"<<endl;
+            cout<<"Press Enter to continue...";
+            getch();
         }
     }
 
