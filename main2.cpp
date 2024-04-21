@@ -5,21 +5,21 @@ using namespace std;
 
 // Task structure
 class Task {
-    public:
-        int id;
-        int duration;
-        int profit;
-        int resourceRequirement;
-        int endTime;
-        vector<int> dependencies; 
-        Task(int _id, int _duration, int _profit, int _resourceRequirement, int _endTime, vector<int> _dependencies) {
-            id = _id;
-            duration = _duration;
-            profit = _profit;
-            resourceRequirement = _resourceRequirement;
-            endTime = _endTime;
-            dependencies = _dependencies;
-        }
+public:
+    int id;
+    int duration;
+    int profit;
+    int resourceRequirement;
+    int endTime;
+    vector<int> dependencies; 
+    Task(int _id, int _duration, int _profit, int _resourceRequirement, int _endTime, vector<int> _dependencies) {
+        id = _id;
+        duration = _duration;
+        profit = _profit;
+        resourceRequirement = _resourceRequirement;
+        endTime = _endTime;
+        dependencies = _dependencies;
+    }
 };
 
 
@@ -50,12 +50,30 @@ vector<int> takeDependencyInput(int taskId) {
 
 
 void takeTaskInput() {
+    int numTasks;
+    cout<<"Enter how many tasks you want to add: ";
+    cin>>numTasks;
+    cout<<endl;
+    int duration, profit, resourceReq, endTime;
 
-    tasks.push_back(Task(1, 1, 100, 1, 2, {0})); // Task 1
-    tasks.push_back(Task(2, 5, 500, 2, 5, {0})); // Task 2
-    tasks.push_back(Task(3, 3, 150, 3, 5, {0})); // Task 3
+    for(int i = 1; i <= numTasks; ++i) {
+
+        cout << "Enter details for Task " << i << ":" << endl;
+        cout << "Duration: ";
+        cin >> duration;
+        cout << "Profit: ";
+        cin >> profit;
+        cout << "Resource Requirement: ";
+        cin >> resourceReq;
+        cout << "End Time: ";
+        cin >> endTime;
+        vector<int> dependencies = takeDependencyInput(i);
+
+        tasks.push_back(Task(i, duration, profit, resourceReq, endTime, dependencies));
+
+    }
+
 }
-
 
 void showInputedSchedule() {
     
@@ -75,58 +93,88 @@ void showInputedSchedule() {
     }
 }
 
+void showOptimizedSchedule(vector<Task> tasks) {
+    
+    cout << "| TASK ID: |" << "| DURATION |" << "| PROFIT  |" << "| RESOURCE REQUIREMENT |" 
+                << "| END TIME ||"<< endl;
+
+
+    for (const auto& task : tasks) {
+        cout <<"|     "<< task.id <<"    |" << "|     " << task.duration << "    |" << "|   " << task.profit << "   |" 
+            <<"|           "<< task.resourceRequirement << "          |" << "|    "<< task.endTime << "     || ";
+
+
+        cout << endl;
+    }
+}
 
 // Function to check if all dependencies are satisfied for a task
-bool areDependenciesSatisfied(const Task& task, const vector<Task>& tasks, const vector<vector<int>>& dp, int availableResources) {
-    for (int dependency : task.dependencies) {
-        if (dp[dependency][availableResources] == 0) {
-            return false; // Dependency not satisfied
+bool areDependenciesSatisfied(const Task& task, const vector<Task>& tasks, const vector<vector<int>>& dp, int r) {
+    for (int dep : task.dependencies) {
+        if (dp[dep][r] == 0) {
+            return false;
         }
     }
-    return true; // All dependencies satisfied
+    return true;
 }
 
+pair<int, vector<vector<int>>> maximizeProfit() {
+    int maxDuration = 5;
 
-// Main algorithm to maximize profit
-// Main algorithm to maximize profit
-int maximizeProfit() {
-    int n = tasks.size();
-
-    // Create and initialize dp array
-    vector<vector<int>> dp(n + 1, vector<int>(availableResources + 1, 0));
-
-    // Sort tasks by end time
+    // Sort tasks by their end time
     sort(tasks.begin(), tasks.end(), [](const Task& a, const Task& b) {
-        return a.endTime < b.endTime;
+        return a.endTime > b.endTime;
     });
 
-    // Iterate over tasks
+    int n = tasks.size();
+
+    vector<vector<int>> dp(n + 1, vector<int>(maxDuration + 1, 0));
+
     for (int i = 1; i <= n; ++i) {
-        Task task = tasks[i - 1];
-        for (int r = 0; r <= availableResources; ++r) {
-            // Exclude the current task if it falls outside its time window
-            if (task.endTime > r) {
-                dp[i][r] = dp[i - 1][r];
-                continue;
-            }
-
-            // Check if resource requirement of current task can be satisfied
-            if (task.resourceRequirement <= r) {
-                // Include the current task only if all dependencies are satisfied
-                if (areDependenciesSatisfied(task, tasks, dp, r)) {
-                    dp[i][r] = max(dp[i][r], task.profit + dp[i - 1][r - task.resourceRequirement]);
+        // Iterate through each possible duration
+        for (int j = 1; j <= maxDuration; ++j) {
+            // Check if the current task can be completed within the deadline
+            if (j >= tasks[i - 1].duration) {
+                // Check if all dependencies are satisfied
+                bool dependenciesSatisfied = true;
+                for(int dep : tasks[i-1].dependencies){
+                    if(dp[dep][j] == 0 && dep > 0){
+                        dependenciesSatisfied = false;
+                        break;
+                    }
                 }
+                // Include the current task if it satisfies the resource constraint and dependencies are satisfied
+                if (tasks[i - 1].resourceRequirement <= availableResources && dependenciesSatisfied) {
+                    dp[i][j] = max(dp[i - 1][j], tasks[i - 1].profit + dp[i - 1][j - tasks[i - 1].duration]);
+                }
+            } else {
+                // Exclude the current task if it can't be completed within the deadline
+                dp[i][j] = dp[i - 1][j];
             }
-
-            // Update dp table if excluding the task leads to higher profit
-            dp[i][r] = max(dp[i][r], dp[i - 1][r]);
         }
     }
 
-    // Return the maximum profit
-    return dp[n][availableResources];
+    return {dp[n][maxDuration], dp};
 }
 
+
+vector<Task> extractOptimizedSchedule(const vector<vector<int>>& dp, const vector<Task>& tasks, int availableResources) {
+    int maxDuration = dp[0].size() - 1;
+    vector<Task> optimizedSchedule;
+
+    for (int i = tasks.size(); i > 0; --i) {
+        if (dp[i][maxDuration] != dp[i - 1][maxDuration]) {
+            optimizedSchedule.push_back(tasks[i - 1]);
+            maxDuration -= tasks[i - 1].duration;
+            availableResources -= tasks[i - 1].resourceRequirement;
+        }
+    }
+
+    // Reverse the schedule to maintain the original order
+    reverse(optimizedSchedule.begin(), optimizedSchedule.end());
+
+    return optimizedSchedule;
+}
 
 int main() {
 
@@ -140,7 +188,7 @@ int main() {
         cout << "3. Set Total Resources" << endl;
         cout << "4. Build Optimized Schedule" << endl;
         cout << "5. Show Optimized Schedule" << endl;
-        cout << "6. Exit" << endl;
+        cout << "6. Exit";
         cout<<endl;
         cout<<"Enter your option: ";
         cin>>option;
@@ -161,12 +209,19 @@ int main() {
 
         }
         else if(option == 4){
-            maxProfit = maximizeProfit();
-        
+            pair<int, vector<vector<int>>> result = maximizeProfit();
+            maxProfit = result.first;
+            cout << "Maximum Profit: " << maxProfit << endl;
+            cout << "Optimized Schedule Built Successfully!" << endl;
         }
         else if(option == 5){
-            cout<<"Maximum Profit: "<<maxProfit<<endl;
-            
+            if(maxProfit == 0) {
+                cout << "Optimized Schedule not available. Please build it first." << endl;
+            } else {
+                pair<int, vector<vector<int>>> result = maximizeProfit();
+                vector<Task> optimizedSchedule = extractOptimizedSchedule(result.second, tasks, availableResources);
+                showOptimizedSchedule(optimizedSchedule);
+            }
         }
         else if(option == 6){
             flag = false;
@@ -174,8 +229,6 @@ int main() {
         else{
             cout<<"Invalid Option"<<endl;
         }
-
-
     }
 
     return 0;
@@ -186,71 +239,6 @@ int main() {
 
 
 
-
-
-
-
-
-
-
-
-// int main() {
-//     // Initialize tasks
-//     vector<Task> tasks;
-
-//     // Add tasks to the vector with their respective attributes
-//     tasks.push_back(Task(1, 10, 100, 1, 0, 20)); // Task 1
-//     tasks.push_back(Task(2, 15, 150, 2, 5, 25)); // Task 2
-//     tasks.push_back(Task(3, 20, 200, 3, 10, 30)); // Task 3
-//     tasks.push_back(Task(4, 10, 100, 1, 15, 35)); // Task 4
-
-//     // Initialize dependency graph
-//     tasks[1].dependencies.push_back(0); // Task 2 depends on Task 1
-//     tasks[2].dependencies.push_back(1); // Task 3 depends on Task 2
-//     tasks[3].dependencies.push_back(2); // Task 4 depends on Task 3
-
-//     // Display tasks and their dependencies
-//     for (const auto& task : tasks) {
-//         cout << "Task " << task.id << " (Duration: " << task.duration
-//              << ", Profit: " << task.profit << ", Resource Requirement: " << task.resourceRequirement
-//              << ", Start Time: " << task.startTime << ", End Time: " << task.endTime << ")" << endl;
-        
-//         cout << "Dependencies: ";
-//         for (int dependency : task.dependencies) {
-//             cout << dependency + 1 << " "; // Adding 1 to convert 0-indexed dependency to 1-indexed task ID
-//         }
-//         cout << endl << endl;
-//     }
-
-//     return 0;
-// }
-
-
-// void takeTaskInput() {
-//     // int numTasks;
-//     // cout<<"Enter how many tasks you want to add: ";
-//     // cin>>numTasks;
-//     // cout<<endl;
-//     // int duration, profit, resourceReq, endTime;
-
-//     // for(int i = 1; i <= numTasks; ++i) {
-
-//     //     cout << "Enter details for Task " << i << ":" << endl;
-//     //     cout << "Duration: ";
-//     //     cin >> duration;
-//     //     cout << "Profit: ";
-//     //     cin >> profit;
-//     //     cout << "Resource Requirement: ";
-//     //     cin >> resourceReq;
-//     //     cout << "End Time: ";
-//     //     cin >> endTime;
-//     //     vector<int> dependencies = takeDependencyInput(i);
-
-//     //     tasks.push_back(Task(i, duration, profit, resourceReq, endTime, dependencies));
-
-//     // }
-
-//     tasks.push_back(Task(1, 1, 100, 1, 2, {0})); // Task 1
-//     tasks.push_back(Task(2, 5, 500, 2, 5, {0})); // Task 2
-//     tasks.push_back(Task(3, 3, 150, 3, 5, {0})); // Task 3
-// }
+// tasks.push_back(Task(1, 1, 100, 1, 2, {0})); // Task 1
+// tasks.push_back(Task(2, 5, 500, 2, 5, {0})); // Task 2
+// tasks.push_back(Task(3, 3, 150, 3, 5, {0})); // Task 3
